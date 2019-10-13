@@ -1,8 +1,8 @@
 package main
 
 import (
-"log"
-"github.com/songgao/water"
+	"github.com/songgao/water"
+	"log"
 )
 
 func main() {
@@ -21,6 +21,37 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("Packet Received: % x\n", packet[:n])
+		parse(packet[:n])
 	}
 }
+
+func parse(bytes []byte) {
+	log.Printf("[Packet Received] Len: %d, Bytes: % x\n", len(bytes), bytes)
+	version := getVersion(bytes)
+	log.Printf("[parse] version: %d\n", version)
+	protocol := getProtocol(bytes)
+	log.Printf("[parse] protocol: %d\n", protocol)
+}
+
+func getVersion(bytes []byte) uint {
+	return uint(bytes[0] >> 4)
+}
+
+func getProtocol(bytes []byte) Protocol {
+	switch bytes[9] {
+	case 1:
+		return Ping
+	case 6:
+		return TCP
+	default:
+		return Unknown
+	}
+}
+
+type Protocol int
+
+const (
+	Ping Protocol = 1
+	TCP Protocol = 6
+	Unknown Protocol = -1
+)
