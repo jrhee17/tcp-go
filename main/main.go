@@ -3,6 +3,9 @@ package main
 import (
 	"github.com/songgao/water"
 	"log"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"fmt"
 )
 
 func main() {
@@ -26,11 +29,16 @@ func main() {
 }
 
 func parse(bytes []byte) {
-	log.Printf("[Packet Received] Len: %d, Bytes: % x\n", len(bytes), bytes)
-	version := getVersion(bytes)
-	log.Printf("[parse] version: %d\n", version)
-	protocol := getProtocol(bytes)
-	log.Printf("[parse] protocol: %d\n", protocol)
+	// Decode a packet
+	packet := gopacket.NewPacket(bytes, layers.LayerTypeEthernet, gopacket.Default)
+	log.Printf("[parse] packet: %v\n", packet.LinkLayer())
+	// Get the TCP layer from this packet
+	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+		fmt.Println("This is a TCP packet!")
+		// Get actual TCP data from this layer
+		tcp, _ := tcpLayer.(*layers.TCP)
+		fmt.Printf("From src port %d to dst port %d\n", tcp.SrcPort, tcp.DstPort)
+	}
 }
 
 func getVersion(bytes []byte) uint {

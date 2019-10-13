@@ -5,6 +5,14 @@
 sudo ./run.sh
 ```
 
+You may need to set `GOPATH` and install `water` separately
+(running with `sudo` doesn't resolve dependencies automatically)
+
+```bash
+go get -u github.com/songgao/water
+go get -u github.com/songgao/water/waterutil
+```
+
 You should see the following tunnel when inputting ifconfig
 ```
 > ifconfig
