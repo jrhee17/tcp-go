@@ -5,7 +5,7 @@ import (
 	"log"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"fmt"
+	"tcp-go/main/tcp"
 )
 
 func main() {
@@ -30,14 +30,14 @@ func main() {
 
 func parse(bytes []byte) {
 	// Decode a packet
-	packet := gopacket.NewPacket(bytes, layers.LayerTypeEthernet, gopacket.Default)
-	log.Printf("[parse] packet: %v\n", packet.LinkLayer())
+	packet := gopacket.NewPacket(bytes, layers.LayerTypeIPv4, gopacket.Default)
+
 	// Get the TCP layer from this packet
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-		fmt.Println("This is a TCP packet!")
-		// Get actual TCP data from this layer
-		tcp, _ := tcpLayer.(*layers.TCP)
-		fmt.Printf("From src port %d to dst port %d\n", tcp.SrcPort, tcp.DstPort)
+		layer, _ := tcpLayer.(*layers.TCP)
+		tcp.Process(*layer)
+	} else {
+		log.Printf("[ignoring packet] %v\n", packet)
 	}
 }
 
