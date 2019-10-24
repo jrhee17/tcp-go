@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/songgao/water"
-	"log"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"github.com/songgao/water"
+	"log"
 	"tcp-go/main/tcp"
 )
 
@@ -24,21 +24,57 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		parse(packet[:n])
+		parse(packet[:n], ifce)
 	}
 }
 
-func parse(bytes []byte) {
+func parse(bytes []byte, ifce *water.Interface) {
 	// Decode a packet
 	packet := gopacket.NewPacket(bytes, layers.LayerTypeIPv4, gopacket.Default)
 
-	// Get the TCP layer from this packet
-	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-		layer, _ := tcpLayer.(*layers.TCP)
-		tcp.Process(*layer)
-	} else {
+	layer := getLayer(packet, layers.LayerTypeTCP)
+	tcpLayer, _ := layer.(*layers.TCP)
+
+	ipv4Layer := getLayer(packet, layers.LayerTypeIPv4).(*layers.IPv4)
+
+	if tcpLayer == nil {
 		log.Printf("[ignoring packet] %v\n", packet)
+		return
 	}
+
+	tcpResult := tcp.Process(*tcpLayer)
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{
+		FixLengths: false,
+		ComputeChecksums: false,
+	}
+
+	err := gopacket.SerializeLayers(buf, opts,
+		&layers.IPv4{
+			Version: ipv4Layer.Version,
+			SrcIP: ipv4Layer.DstIP,
+			DstIP: ipv4Layer.SrcIP,
+		},
+		tcpResult,
+		gopacket.Payload([]byte{}))
+
+	if err != nil {
+		log.Printf("[error serializing buffer] layer: %v, err: %v", layer, err)
+		return
+	}
+	if buf != nil {
+		val, err := ifce.Write(buf.Bytes())
+		log.Printf("[writing buffer] val: %v, err: %v, buf: %v", val, err, buf)
+	}
+}
+
+func getLayer(packet gopacket.Packet, layerType gopacket.LayerType) gopacket.Layer {
+	layer := packet.Layer(layerType)
+	if layer == nil {
+		log.Printf("[ignoring packet] %v\n", packet)
+		return nil
+	}
+	return layer
 }
 
 func getVersion(bytes []byte) uint {
