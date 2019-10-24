@@ -6,6 +6,7 @@ import (
 	"github.com/songgao/water"
 	"log"
 	"tcp-go/main/tcp"
+	"encoding/hex"
 )
 
 func main() {
@@ -34,7 +35,6 @@ func parse(bytes []byte, ifce *water.Interface) {
 
 	layer := getLayer(packet, layers.LayerTypeTCP)
 	tcpLayer, _ := layer.(*layers.TCP)
-
 	ipv4Layer := getLayer(packet, layers.LayerTypeIPv4).(*layers.IPv4)
 
 	if tcpLayer == nil {
@@ -52,6 +52,8 @@ func parse(bytes []byte, ifce *water.Interface) {
 	err := gopacket.SerializeLayers(buf, opts,
 		&layers.IPv4{
 			Version: ipv4Layer.Version,
+			Protocol: ipv4Layer.Protocol,
+			IHL: 5,
 			SrcIP: ipv4Layer.DstIP,
 			DstIP: ipv4Layer.SrcIP,
 		},
@@ -63,8 +65,8 @@ func parse(bytes []byte, ifce *water.Interface) {
 		return
 	}
 	if buf != nil {
-		val, err := ifce.Write(buf.Bytes())
-		log.Printf("[writing buffer] val: %v, err: %v, buf: %v", val, err, buf)
+		sze, err := ifce.Write(buf.Bytes())
+		log.Printf("[write success] sze: %v, err: %v, buf: %v", sze, err, hex.EncodeToString(buf.Bytes()))
 	}
 }
 
